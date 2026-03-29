@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sputnik — Learn Russian</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f2f0ea;
+            --bg-glass: rgba(242, 240, 234, 0.9);
+            --bg-card: #ffffff;
+            --text: #2d3748;
+            --text-muted: #718096;
+            --text-faint: #a0aec0;
+            --border: #e2e2d5;
+            --red: #ef4444;
+            --amber: #d97706;
+        }
+
+        .dark {
+            --bg: #1a1a1a;
+            --bg-glass: rgba(26, 26, 26, 0.92);
+            --bg-card: #262626;
+            --text: #e5e5e5;
+            --text-muted: #a0aec0;
+            --text-faint: #666666;
+            --border: #333333;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            letter-spacing: -0.02em;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        /* Grain texture overlay */
+        .grain::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            opacity: 0.025;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* Glassmorphism */
+        .glass {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            background: var(--bg-glass) !important;
+            border-color: var(--border) !important;
+        }
+
+        /* Tactile button press */
+        .btn-press:active {
+            transform: translateY(2px);
+        }
+
+        /* Progress Ring */
+        .progress-ring { transform: rotate(-90deg); }
+        .progress-ring__circle { transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* Roadmap */
+        .roadmap-item { position: relative; flex-shrink: 0; }
+        
+        .roadmap-connector {
+            position: absolute;
+            top: 28px;
+            left: calc(50% + 28px);
+            width: calc(100% - 56px);
+            height: 2px;
+            background: var(--border);
+        }
+        .roadmap-item.completed .roadmap-connector { background: var(--red); }
+        .roadmap-item.current .roadmap-connector {
+            background: linear-gradient(90deg, var(--red) 0%, var(--red) 50%, var(--border) 50%);
+        }
+        .roadmap-item:last-child .roadmap-connector { display: none; }
+
+        /* Cyrillic text - bolder weight */
+        .cyrillic { font-weight: 800; }
+
+        /* Quiz options */
+        .quiz-option {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            color: var(--text);
+            transition: all 0.15s ease;
+        }
+        .quiz-option:hover:not(:disabled) {
+            border-color: var(--red);
+            background: rgba(239, 68, 68, 0.08);
+        }
+        .quiz-option:disabled { cursor: default; }
+
+        /* Type input */
+        .type-input {
+            font-size: 1.5rem;
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--text);
+            transition: border-color 0.15s ease;
+        }
+        .type-input:focus { outline: none; border-color: var(--red); }
+        .type-input::placeholder { color: var(--border); }
+
+        /* Key hint */
+        .key-hint {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 22px;
+            height: 22px;
+            padding: 0 4px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        /* Animations */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-6px); }
+            40% { transform: translateX(6px); }
+            60% { transform: translateX(-4px); }
+            80% { transform: translateX(4px); }
+        }
+        .shake { animation: shake 0.4s ease; }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+            50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        }
+
+        @keyframes orbit {
+            from { transform: rotate(0deg) translateX(50px) rotate(0deg); }
+            to { transform: rotate(360deg) translateX(50px) rotate(-360deg); }
+        }
+        .sputnik-orbit { animation: orbit 8s linear infinite; transform-origin: 50px 50px; }
+
+        @keyframes heart-beat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+        .heart-recharging { animation: heart-beat 0.6s ease infinite; }
+
+        @keyframes fade-in-up {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in-up { animation: fade-in-up 0.3s ease forwards; }
+
+        /* Card styling via CSS vars */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        /* Progress bar */
+        .progress-bar { background: var(--red); }
+        .progress-track { background: var(--border); }
+
+        /* Rate indicator */
+        .rate-indicator {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            transition: all 0.15s ease;
+        }
+        .rate-indicator:hover { border-color: var(--red); }
+        .rate-indicator.active {
+            background: var(--red);
+            border-color: var(--red);
+            color: white;
+        }
+
+        /* Text colors via CSS vars */
+        .text-main { color: var(--text); }
+        .text-muted { color: var(--text-muted); }
+        .text-faint { color: var(--text-faint); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        /* Section backgrounds */
+        .bg-section { background: var(--bg); }
+        .bg-section-alt { background: var(--bg-card); }
+    </style>
+</head>
+<body class="grain min-h-screen">
+    <div id="app" class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="sticky top-0 z-50 glass border-b">
+            <div class="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <button id="menu-toggle" class="md:hidden p-2 -ml-2 btn-press">
+                        <i class="fa-solid fa-bars text-lg"></i>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded flex items-center justify-center text-white font-bold text-sm" style="background: var(--red)">Я</div>
+                        <span class="font-bold tracking-tight text-lg text-main">Sputnik</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-5">
+                    <div class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-fire-flame-curved" style="color: var(--red)"></i>
+                        <span id="stat-streak" class="font-bold text-sm text-main">0</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-bolt" style="color: var(--amber)"></i>
+                        <span id="stat-xp" class="font-bold text-sm text-main">0</span>
+                    </div>
+                    <div id="hearts-container" class="flex items-center gap-0.5"></div>
+                    <button id="theme-toggle" class="p-2 btn-press rounded hover:opacity-80 transition" aria-label="Toggle theme">
+                        <i id="theme-icon" class="fa-solid fa-moon text-sm text-muted"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Mobile Nav -->
+        <nav id="mobile-nav" class="fixed inset-0 z-50 glass border-r transform translate-x-full transition-transform duration-300 md:hidden">
+            <div class="p-4 flex justify-between items-center border-b">
+                <span class="font-bold text-lg text-main">Menu</span>
+                <button id="menu-close" class="p-2">
+                    <i class="fa-solid fa-xmark text-xl text-main"></i>
+                </button>
+            </div>
+            <div class="p-4 space-y-2">
+                <a href="#roadmap" class="nav-link block py-3 px-4 rounded-lg hover:opacity-80 transition text-main">Roadmap</a>
+                <a href="#alphabet" class="nav-link block py-3 px-4 rounded-lg hover:opacity-80 transition text-main">Alphabet</a>
+                <a href="#vocabulary" class="nav-link block py-3 px-4 rounded-lg hover:opacity-80 transition text-main">Vocabulary</a>
+                <a href="#practice" class="nav-link block py-3 px-4 rounded-lg hover:opacity-80 transition text-main">Practice</a>
+            </div>
+        </nav>
+
+        <!-- Desktop Nav -->
+        <nav class="hidden md:block glass border-b">
+            <div class="max-w-2xl mx-auto px-4">
+                <div class="flex gap-6 text-sm font-medium">
+                    <a href="#roadmap" class="nav-link py-3 border-b-2 border-transparent hover:border-[var(--red)] transition text-muted">Roadmap</a>
+                    <a href="#alphabet" class="nav-link py-3 border-b-2 border-transparent hover:border-[var(--red)] transition text-muted">Alphabet</a>
+                    <a href="#vocabulary" class="nav-link py-3 border-b-2 border-transparent hover:border-[var(--red)] transition text-muted">Vocabulary</a>
+                    <a href="#practice" class="nav-link py-3 border-b-2 border-transparent hover:border-[var(--red)] transition text-muted">Practice</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-1">
+            <!-- Hero -->
+            <section class="text-center py-12 md:py-16 px-4">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider mb-6" style="background: rgba(239,68,68,0.1); color: var(--red)">
+                    <i class="fa-solid fa-rocket"></i>
+                    Mission Control
+                </div>
+                <h1 class="text-4xl md:text-6xl font-extrabold tracking-tighter mb-4 text-main">
+                    Don't just learn Russian.<br>
+                    <span style="color: var(--red)">Understand the Soul.</span>
+                </h1>
+                <p class="text-base text-muted max-w-md mx-auto mb-8">
+                    From Cyrillic to the literary giants. Your orbital journey starts here.
+                </p>
+                <a href="#practice" class="inline-block px-8 py-3 rounded font-bold btn-press shadow-lg text-white" style="background: var(--red)">
+                    Begin Mission
+                </a>
+            </section>
+
+            <!-- Roadmap -->
+            <section id="roadmap" class="py-8 border-y" style="border-color: var(--border); background: var(--bg-card)">
+                <div class="max-w-2xl mx-auto px-4">
+                    <h2 class="text-xl font-bold mb-1 text-center text-main">Learning Trajectory</h2>
+                    <p class="text-xs text-muted text-center mb-6">Complete missions to advance</p>
+                    
+                    <div class="overflow-x-auto pb-4 -mx-4 px-4">
+                        <div class="flex gap-0 min-w-max" id="roadmap-track"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quiz / Practice Section -->
+            <section id="practice" class="py-12 px-4 bg-section">
+                <div class="max-w-lg mx-auto">
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <span id="lesson-label" class="text-sm font-bold text-muted">Mission 1: Basics</span>
+                            <span id="quiz-counter" class="text-sm text-faint">0 / 5</span>
+                        </div>
+                        <div class="h-1.5 rounded-full overflow-hidden progress-track">
+                            <div id="quiz-progress" class="h-full progress-bar transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div id="quiz-container" class="card rounded-lg p-6 md:p-8 shadow-sm"></div>
+
+                    <div class="flex justify-center gap-6 mt-4 text-xs text-faint">
+                        <span><span class="key-hint">1-4</span> Select</span>
+                        <span><span class="key-hint">↵</span> Continue</span>
+                        <span><span class="key-hint">Space</span> Audio</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Alphabet -->
+            <section id="alphabet" class="py-12 px-4 bg-section-alt">
+                <div class="max-w-2xl mx-auto">
+                    <h2 class="text-2xl font-bold mb-2 text-center text-main">Cyrillic Alphabet</h2>
+                    <p class="text-sm text-muted text-center mb-8">33 letters with IPA notation</p>
+                    
+                    <div id="alphabet-grid" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-2"></div>
+
+                    <div class="mt-6 flex items-center justify-center gap-4">
+                        <span class="text-xs text-muted">Speed:</span>
+                        <div class="flex items-center gap-2">
+                            <button class="rate-indicator px-2 py-1 rounded text-xs font-mono btn-press" data-rate="0.5">0.5x</button>
+                            <button class="rate-indicator px-2 py-1 rounded text-xs font-mono btn-press" data-rate="0.75">0.75x</button>
+                            <button class="rate-indicator px-2 py-1 rounded text-xs font-mono btn-press active" data-rate="1">1x</button>
+                            <button class="rate-indicator px-2 py-1 rounded text-xs font-mono btn-press" data-rate="1.25">1.25x</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Vocabulary -->
+            <section id="vocabulary" class="py-12 px-4 bg-section">
+                <div class="max-w-2xl mx-auto">
+                    <h2 class="text-2xl font-bold mb-2 text-center text-main">Essential Vocabulary</h2>
+                    <p class="text-sm text-muted text-center mb-8">Tap cards to hear pronunciation</p>
+                    
+                    <div id="vocabulary-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                </div>
+            </section>
+
+            <!-- Sputnik Footer -->
+            <section class="py-12 text-center px-4 border-t" style="border-color: var(--border)">
+                <div id="footer-sputnik"></div>
+                <p class="text-sm text-muted">
+                    Inspired by the 1957 launch that changed the world.<br>
+                    <span class="text-xs text-faint">Made for Russian learners everywhere.</span>
+                </p>
+            </section>
+        </main>
+
+        <footer class="py-6 text-center border-t text-xs text-faint" style="border-color: var(--border)">
+            Sputnik Learning Platform
+        </footer>
+    </div>
+
+    <script>
+    // ============================================================
+    // CONTENT DATABASE
+    // ============================================================
+    const CONTENT_DB = {
+        lessons: [
+            { id: 0, name: "Intro" },
+            { id: 1, name: "Basics" },
+            { id: 2, name: "Alphabet" },
+            { id: 3, name: "Greetings" },
+            { id: 4, name: "Phrases" },
+            { id: 5, name: "Cases" },
+        ],
+        quizzes: [
+            {
+                id: 0,
+                name: "Intro",
+                questions: [
+                    { type: 'mc', q: 'Привет', opts: ['Goodbye', 'Hello', 'Thank you', 'Yes'], ans: 1, hint: 'Informal greeting' },
+                    { type: 'mc', q: 'Спасибо', opts: ['Please', 'Sorry', 'Hello', 'Thank you'], ans: 3, hint: 'Gratitude' },
+                    { type: 'type', q: 'Type "Hello" in Russian:', ans: 'Привет', alt: ['привет'] },
+                    { type: 'mc', q: 'Да', opts: ['No', 'Yes', 'Maybe', 'OK'], ans: 1, hint: 'Affirmative' },
+                    { type: 'mc', q: 'Нет', opts: ['Yes', 'No', 'Maybe', 'Good'], ans: 1, hint: 'Negative' },
+                ]
+            },
+            {
+                id: 1,
+                name: "Basics",
+                questions: [
+                    { type: 'mc', q: 'How do you say "Thank you"?', opts: ['Пожалуйста', 'Спасибо', 'Извините', 'Хорошо'], ans: 1, hint: 'Spasibo' },
+                    { type: 'type', q: 'Type "Good":', ans: 'Хорошо', alt: ['хорошо', 'ХОРОШО'] },
+                    { type: 'mc', q: 'Which means "Please"?', opts: ['Спасибо', 'Да', 'Пожалуйста', 'Нет'], ans: 2, hint: 'Polite request' },
+                    { type: 'mc', q: '"Bad" in Russian:', opts: ['Хорошо', 'Плохо', 'Да', 'Нет'], ans: 1, hint: 'Plokho' },
+                    { type: 'type', q: 'Type "No":', ans: 'Нет', alt: ['нет', 'НЕТ'] },
+                ]
+            },
+            {
+                id: 2,
+                name: "Alphabet",
+                questions: [
+                    { type: 'mc', q: 'А', opts: ['a as in "cat"', 'a as in "father"', 'o as in "port"', 'e as in "bed"'], ans: 1, hint: 'Like "a" in father' },
+                    { type: 'mc', q: 'Which makes the "ch" sound?', opts: ['Ш', 'Ч', 'Щ', 'С'], ans: 1, hint: 'Like "ch" in church' },
+                    { type: 'mc', q: 'О sounds like...', opts: ['a as in "cat"', 'o as in "port"', 'e as in "bed"', 'u as in "boot"'], ans: 1, hint: 'Round your lips' },
+                    { type: 'type', q: 'Type the letter for "sh":', ans: 'Ш', alt: ['ш'] },
+                    { type: 'mc', q: 'Russian alphabet has how many letters?', opts: ['26', '30', '33', '36'], ans: 2, hint: 'More than English' },
+                ]
+            }
+        ],
+        vocabulary: [
+            { ru: "Привет", ipa: "/prʲɪˈvʲet/", en: "Hello (informal)", cat: "Greetings" },
+            { ru: "Здравствуйте", ipa: "/ˈzdrastvʊjtʲe/", en: "Hello (formal)", cat: "Greetings" },
+            { ru: "Спасибо", ipa: "/spɐˈsʲibə/", en: "Thank you", cat: "Polite" },
+            { ru: "Пожалуйста", ipa: "/pɐˈʒaɫʊstə/", en: "Please", cat: "Polite" },
+            { ru: "Да", ipa: "/da/", en: "Yes", cat: "Basics" },
+            { ru: "Нет", ipa: "/nʲet/", en: "No", cat: "Basics" },
+            { ru: "Как дела?", ipa: "/kak dʲɪˈla/", en: "How are you?", cat: "Greetings" },
+            { ru: "Хорошо", ipa: "/xɐrɐˈʃo/", en: "Good / OK", cat: "Responses" },
+            { ru: "Плохо", ipa: "/ˈploxə/", en: "Bad", cat: "Responses" },
+            { ru: "До свидания", ipa: "/də svʲɪˈdanʲɪjə/", en: "Goodbye", cat: "Greetings" },
+            { ru: "Извините", ipa: "/ɪzvʲɪˈnʲitʲe/", en: "Excuse me / Sorry", cat: "Polite" },
+            { ru: "Водка", ipa: "/ˈvotkə/", en: "Vodka", cat: "Culture" },
+        ],
+        alphabet: [
+            { l: 'А', ipa: 'a', ex: 'father' }, { l: 'Б', ipa: 'b', ex: 'book' },
+            { l: 'В', ipa: 'v', ex: 'vet' }, { l: 'Г', ipa: 'ɡ', ex: 'go' },
+            { l: 'Д', ipa: 'd', ex: 'door' }, { l: 'Е', ipa: 'je', ex: 'yes' },
+            { l: 'Ё', ipa: 'jo', ex: 'your' }, { l: 'Ж', ipa: 'ʒ', ex: 'measure' },
+            { l: 'З', ipa: 'z', ex: 'zoo' }, { l: 'И', ipa: 'i', ex: 'meet' },
+            { l: 'Й', ipa: 'j', ex: 'boy' }, { l: 'К', ipa: 'k', ex: 'kite' },
+            { l: 'Л', ipa: 'l', ex: 'lamp' }, { l: 'М', ipa: 'm', ex: 'map' },
+            { l: 'Н', ipa: 'n', ex: 'no' }, { l: 'О', ipa: 'o', ex: 'port' },
+            { l: 'П', ipa: 'p', ex: 'pet' }, { l: 'Р', ipa: 'r', ex: 'rolled r' },
+            { l: 'С', ipa: 's', ex: 'set' }, { l: 'Т', ipa: 't', ex: 'top' },
+            { l: 'У', ipa: 'u', ex: 'boot' }, { l: 'Ф', ipa: 'f', ex: 'face' },
+            { l: 'Х', ipa: 'x', ex: 'loch' }, { l: 'Ц', ipa: 'ts', ex: 'cats' },
+            { l: 'Ч', ipa: 'tʃ', ex: 'church' }, { l: 'Ш', ipa: 'ʃ', ex: 'ship' },
+            { l: 'Щ', ipa: 'ʃtʃ', ex: 'fresh cheese' }, { l: 'Ъ', ipa: '—', ex: 'hard sign' },
+            { l: 'Ы', ipa: 'ɨ', ex: 'bits' }, { l: 'Ь', ipa: 'ʲ', ex: 'soft sign' },
+            { l: 'Э', ipa: 'ɛ', ex: 'pet' }, { l: 'Ю', ipa: 'ju', ex: 'unit' },
+            { l: 'Я', ipa: 'ja', ex: 'yard' },
+        ]
+    };
+
+    // ============================================================
+    // DRY SVG COMPONENT
+    // ============================================================
+    function renderSputnikSVG(size = 'w-24 h-24', animated = true) {
+        return `
+            <svg class="${size}" viewBox="0 0 100 100" fill="none">
+                <circle cx="50" cy="50" r="12" fill="var(--text)"/>
+                <line x1="50" y1="38" x2="50" y2="20" stroke="var(--red)" stroke-width="2"/>
+                <line x1="62" y1="50" x2="80" y2="50" stroke="var(--red)" stroke-width="2"/>
+                <line x1="50" y1="62" x2="50" y2="80" stroke="var(--red)" stroke-width="2"/>
+                <line x1="38" y1="50" x2="20" y2="50" stroke="var(--red)" stroke-width="2"/>
+                <line x1="58" y1="42" x2="70" y2="30" stroke="var(--text)" stroke-width="1.5" opacity="0.3"/>
+                <line x1="42" y1="58" x2="30" y2="70" stroke="var(--text)" stroke-width="1.5" opacity="0.3"/>
+                <line x1="58" y1="58" x2="70" y2="70" stroke="var(--text)" stroke-width="1.5" opacity="0.3"/>
+                <line x1="42" y1="42" x2="30" y2="30" stroke="var(--text)" stroke-width="1.5" opacity="0.3"/>
+                <ellipse cx="50" cy="50" rx="42" ry="16" stroke="var(--red)" stroke-width="1" fill="none" stroke-dasharray="4 2" opacity="0.4"/>
+                ${animated ? '<circle cx="8" cy="50" r="3" fill="var(--amber)" class="sputnik-orbit"/>' : '<circle cx="8" cy="50" r="3" fill="var(--amber)"/>'}
+            </svg>
+        `;
+    }
+
+    // ============================================================
+    // APPLICATION STATE
+    // ============================================================
+    const App = {
+        state: {
+            streak: 0,
+            xp: 0,
+            hearts: 5,
+            currentLesson: 0,
+            completedLessons: [],
+            audioRate: 1,
+            isDark: false,
+            quizIndex: 0,
+            quizScore: 0,
+            quizWrong: 0,
+            quizAnswered: false,
+            rechargeCount: 0,
+            rechargeQueue: [],
+            userInteracted: false,
+        },
+
+        init() {
+            this.load();
+            this.applyTheme();
+            this.render();
+            this.bindEvents();
+            this.sync();
+            requestAnimationFrame(() => this.centerRoadmap());
+        },
+
+        load() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('sputnik-state') || '{}');
+                Object.assign(this.state, {
+                    streak: saved.streak || 0,
+                    xp: saved.xp || 0,
+                    hearts: saved.hearts || 5,
+                    currentLesson: saved.currentLesson || 0,
+                    completedLessons: saved.completedLessons || [],
+                    audioRate: saved.audioRate || 1,
+                    isDark: saved.isDark || false,
+                });
+            } catch (e) {}
+        },
+
+        save() {
+            localStorage.setItem('sputnik-state', JSON.stringify({
+                streak: this.state.streak,
+                xp: this.state.xp,
+                hearts: this.state.hearts,
+                currentLesson: this.state.currentLesson,
+                completedLessons: this.state.completedLessons,
+                audioRate: this.state.audioRate,
+                isDark: this.state.isDark,
+            }));
+        },
+
+        applyTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            
+            if (this.state.isDark) {
+                html.classList.add('dark');
+                icon.className = 'fa-solid fa-sun text-sm text-muted';
+            } else {
+                html.classList.remove('dark');
+                icon.className = 'fa-solid fa-moon text-sm text-muted';
+            }
+        },
+
+        toggleTheme() {
+            this.state.isDark = !this.state.isDark;
+            this.applyTheme();
+            this.save();
+        },
+
+        sync() {
+            document.getElementById('stat-streak').textContent = this.state.streak;
+            document.getElementById('stat-xp').textContent = this.state.xp;
+            
+            const heartsEl = document.getElementById('hearts-container');
+            heartsEl.innerHTML = '';
+            for (let i = 0; i < 5; i++) {
+                const heart = document.createElement('i');
+                heart.className = i < this.state.hearts 
+                    ? 'fa-solid fa-heart' 
+                    : 'fa-regular fa-heart';
+                heart.style.color = i < this.state.hearts ? 'var(--red)' : 'var(--text-faint)';
+                heart.style.width = '14px';
+                heartsEl.appendChild(heart);
+            }
+        },
+
+        loseHeart() {
+            this.state.hearts = Math.max(0, this.state.hearts - 1);
+            this.sync();
+            
+            if (this.state.hearts <= 0) {
+                this.state.rechargeQueue = this.shuffleArray([...CONTENT_DB.vocabulary]).slice(0, 5);
+                this.state.rechargeCount = 0;
+                this.renderRechargeStation();
+            }
+        },
+
+        addXP(amount) {
+            this.state.xp += amount;
+            this.sync();
+        },
+
+        addStreak() {
+            this.state.streak++;
+            this.sync();
+        },
+
+        completeLesson() {
+            if (!this.state.completedLessons.includes(this.state.currentLesson)) {
+                this.state.completedLessons.push(this.state.currentLesson);
+            }
+            if (this.state.currentLesson < CONTENT_DB.quizzes.length - 1) {
+                this.state.currentLesson++;
+            }
+            this.addStreak();
+            this.addXP(25);
+        },
+
+        shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        },
+
+        render() {
+            this.renderRoadmap();
+            this.renderAlphabet();
+            this.renderVocabulary();
+            this.renderRateIndicators();
+            this.renderFooterSputnik();
+            this.renderQuiz();
+        },
+
+        renderFooterSputnik() {
+            document.getElementById('footer-sputnik').innerHTML = renderSputnikSVG('w-32 h-32 mx-auto mb-6');
+        },
+
+        centerRoadmap() {
+            const currentNode = document.querySelector('.roadmap-item.current');
+            if (currentNode) {
+                currentNode.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
+        },
+
+        renderRoadmap() {
+            const track = document.getElementById('roadmap-track');
+            track.innerHTML = '';
+            
+            CONTENT_DB.lessons.forEach((lesson, i) => {
+                const isCompleted = this.state.completedLessons.includes(i);
+                const isCurrent = i === this.state.currentLesson;
+                const maxCompleted = Math.max(...this.state.completedLessons, -1);
+                const isUnlocked = i <= maxCompleted + 1;
+                
+                const item = document.createElement('div');
+                item.className = `roadmap-item flex flex-col items-center px-6 py-2 ${isUnlocked ? 'cursor-pointer' : 'opacity-40'}`;
+                if (isCompleted) item.classList.add('completed');
+                if (isCurrent) item.classList.add('current');
+                
+                let circleContent, circleStyle;
+                if (isCompleted) {
+                    circleContent = '<i class="fa-solid fa-check text-xs"></i>';
+                    circleStyle = 'background: var(--red); border-color: var(--red); color: white;';
+                } else if (isCurrent) {
+                    circleContent = String(i + 1);
+                    circleStyle = 'background: var(--bg-card); border-color: var(--red); color: var(--red);';
+                } else if (isUnlocked) {
+                    circleContent = String(i + 1);
+                    circleStyle = 'background: var(--bg-card); border-color: var(--border); color: var(--text);';
+                } else {
+                    circleContent = '<i class="fa-solid fa-lock text-xs"></i>';
+                    circleStyle = 'background: var(--border); border-color: var(--border); color: var(--text-faint);';
+                }
+
+                item.innerHTML = `
+                    <div class="w-14 h-14 rounded-full border-2 flex items-center justify-center font-bold text-sm transition-all ${isCurrent ? 'pulse-glow' : ''}" style="${circleStyle}">
+                        ${circleContent}
+                    </div>
+                    <div class="roadmap-connector"></div>
+                    <span class="mt-2 text-[10px] font-medium ${isCurrent ? '' : 'text-muted'}">${lesson.name}</span>
+                `;
+
+                if (isUnlocked) {
+                    item.onclick = () => this.selectLesson(i);
+                }
+
+                track.appendChild(item);
+            });
+        },
+
+        renderAlphabet() {
+            const grid = document.getElementById('alphabet-grid');
+            grid.innerHTML = '';
+            
+            CONTENT_DB.alphabet.forEach(letter => {
+                const card = document.createElement('button');
+                card.className = 'card p-3 rounded text-center btn-press hover:border-[var(--red)] transition-colors';
+                card.innerHTML = `
+                    <div class="text-2xl font-bold cyrillic mb-1 text-main">${letter.l}</div>
+                    <div class="text-[10px] text-muted font-mono">/${letter.ipa}/</div>
+                    <div class="text-[9px] text-faint mt-0.5">${letter.ex}</div>
+                `;
+                card.onclick = () => this.speak(letter.l);
+                grid.appendChild(card);
+            });
+        },
+
+        renderRateIndicators() {
+            document.querySelectorAll('.rate-indicator').forEach(btn => {
+                const rate = parseFloat(btn.dataset.rate);
+                btn.classList.toggle('active', rate === this.state.audioRate);
+                btn.onclick = () => {
+                    this.state.audioRate = rate;
+                    this.save();
+                    this.renderRateIndicators();
+                };
+            });
+        },
+
+        renderVocabulary() {
+            const grid = document.getElementById('vocabulary-grid');
+            grid.innerHTML = '';
+            
+            CONTENT_DB.vocabulary.forEach(word => {
+                const card = document.createElement('button');
+                card.className = 'card p-4 rounded text-left btn-press hover:border-[var(--red)] transition-colors';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-[10px] font-bold uppercase tracking-wider rounded px-2 py-0.5" style="background: rgba(239,68,68,0.1); color: var(--red)">${word.cat}</span>
+                        <i class="fa-solid fa-volume-high text-faint hover:text-[var(--red)] transition"></i>
+                    </div>
+                    <div class="text-xl font-bold cyrillic mb-1 text-main">${word.ru}</div>
+                    <div class="text-xs font-mono mb-1" style="color: var(--amber)">${word.ipa}</div>
+                    <div class="text-xs text-muted">${word.en}</div>
+                `;
+                card.onclick = () => this.speak(word.ru);
+                grid.appendChild(card);
+            });
+        },
+
+        renderQuiz() {
+            document.getElementById('lesson-label').textContent = 
+                `Mission ${this.state.currentLesson + 1}: ${CONTENT_DB.quizzes[this.state.currentLesson]?.name || 'Complete'}`;
+            
+            const container = document.getElementById('quiz-container');
+            
+            if (this.state.hearts <= 0) {
+                this.renderRechargeStation();
+                return;
+            }
+
+            const quiz = CONTENT_DB.quizzes[this.state.currentLesson];
+            if (!quiz) {
+                this.renderComplete();
+                return;
+            }
+
+            const q = quiz.questions[this.state.quizIndex];
+            const progress = (this.state.quizIndex / quiz.questions.length) * 100;
+            document.getElementById('quiz-progress').style.width = `${progress}%`;
+            document.getElementById('quiz-counter').textContent = `${this.state.quizIndex} / ${quiz.questions.length}`;
+
+            if (q.type === 'mc') {
+                container.innerHTML = `
+                    <div class="text-center mb-6 fade-in-up">
+                        <p class="text-xs text-faint uppercase tracking-wider mb-2">Translate</p>
+                        <p class="text-3xl font-bold cyrillic mb-1 text-main">${q.q}</p>
+                        <p class="text-xs text-muted">${q.hint}</p>
+                        <button id="audio-btn-mc" class="mt-3 text-sm text-muted hover:text-[var(--red)] transition flex items-center justify-center gap-2 mx-auto">
+                            <i class="fa-solid fa-volume-high"></i> Hear it
+                        </button>
+                    </div>
+                    <div class="space-y-2" id="mc-options">
+                        ${q.opts.map((opt, i) => `
+                            <button class="quiz-option w-full py-3 px-4 rounded text-left font-medium btn-press flex items-center gap-3" data-idx="${i}">
+                                <span class="key-hint">${i + 1}</span>
+                                <span class="text-main">${opt}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+
+                document.getElementById('audio-btn-mc').onclick = () => this.speak(q.q);
+                
+                document.querySelectorAll('#mc-options button').forEach(btn => {
+                    btn.onclick = () => this.checkMC(parseInt(btn.dataset.idx), q.ans);
+                });
+
+            } else if (q.type === 'type') {
+                container.innerHTML = `
+                    <div class="text-center mb-6 fade-in-up">
+                        <p class="text-xs text-faint uppercase tracking-wider mb-2">Type the translation</p>
+                        <p class="text-xl font-bold mb-4 text-main">${q.q}</p>
+                        <input type="text" id="type-input" class="type-input w-full max-w-xs py-3 px-4 rounded text-center" placeholder="..." autocomplete="off" autocapitalize="off" spellcheck="false">
+                    </div>
+                    <button id="type-submit" class="w-full py-3 rounded font-bold btn-press text-white" style="background: var(--red)">
+                        Check Answer <span class="key-hint ml-2" style="background: rgba(255,255,255,0.2)">↵</span>
+                    </button>
+                `;
+
+                const input = document.getElementById('type-input');
+                input.focus();
+
+                document.getElementById('type-submit').onclick = () => this.checkType(q.ans, q.alt);
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') this.checkType(q.ans, q.alt);
+                });
+            }
+        },
+
+        checkMC(selected, correct) {
+            if (this.state.quizAnswered) return;
+            this.state.quizAnswered = true;
+
+            const buttons = document.querySelectorAll('#mc-options button');
+            buttons.forEach((btn, i) => {
+                btn.disabled = true;
+                if (i === correct) {
+                    btn.style.background = 'rgba(34, 197, 94, 0.1)';
+                    btn.style.borderColor = '#22c55e';
+                } else if (i === selected && selected !== correct) {
+                    btn.style.background = 'rgba(239, 68, 68, 0.1)';
+                    btn.style.borderColor = 'var(--red)';
+                    btn.classList.add('shake');
+                }
+            });
+
+            if (selected === correct) {
+                this.state.quizScore++;
+                this.addXP(10);
+                this.showFeedback(true, 'Correct!', '+10 XP');
+            } else {
+                this.state.quizWrong++;
+                this.loseHeart();
+                this.showFeedback(false, 'Not quite', 'Keep going');
+            }
+        },
+
+        checkType(answer, alternatives) {
+            if (this.state.quizAnswered) return;
+            this.state.quizAnswered = true;
+
+            const input = document.getElementById('type-input');
+            const val = input.value.trim().toLowerCase();
+            const correct = alternatives.includes(val) || val === answer.toLowerCase();
+
+            if (correct) {
+                this.state.quizScore++;
+                this.addXP(15);
+                input.style.borderColor = '#22c55e';
+                input.style.background = 'rgba(34, 197, 94, 0.1)';
+                this.showFeedback(true, 'Perfect!', '+15 XP');
+            } else {
+                this.state.quizWrong++;
+                this.loseHeart();
+                input.style.borderColor = 'var(--red)';
+                input.style.background = 'rgba(239, 68, 68, 0.1)';
+                input.classList.add('shake');
+                input.value = answer;
+                this.showFeedback(false, `Answer: ${answer}`, 'Keep practicing');
+            }
+        },
+
+        showFeedback(isCorrect, title, subtitle) {
+            const container = document.getElementById('quiz-container');
+            container.innerHTML = `
+                <div class="text-center py-8 fade-in-up">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style="background: ${isCorrect ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)'}">
+                        <i class="fa-solid ${isCorrect ? 'fa-check' : 'fa-xmark'} text-3xl" style="color: ${isCorrect ? '#22c55e' : 'var(--red)'}"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-1 text-main">${title}</h3>
+                    <p class="text-sm text-muted">${subtitle}</p>
+                </div>
+                <button id="continue-btn" class="w-full py-3 rounded font-bold btn-press text-white" style="background: var(--red)">
+                    Continue <span class="key-hint ml-2" style="background: rgba(255,255,255,0.2)">↵</span>
+                </button>
+            `;
+
+            document.getElementById('continue-btn').onclick = () => this.nextQuestion();
+        },
+
+        nextQuestion() {
+            this.state.quizAnswered = false;
+            const quiz = CONTENT_DB.quizzes[this.state.currentLesson];
+            this.state.quizIndex++;
+
+            if (this.state.quizIndex >= quiz.questions.length) {
+                this.completeLesson();
+                this.renderComplete();
+            } else {
+                this.renderQuiz();
+            }
+        },
+
+        renderComplete() {
+            const quiz = CONTENT_DB.quizzes[this.state.currentLesson];
+            const accuracy = quiz ? Math.round((this.state.quizScore / quiz.questions.length) * 100) : 100;
+            const circumference = 2 * Math.PI * 45;
+            const offset = circumference - (accuracy / 100) * circumference;
+
+            const container = document.getElementById('quiz-container');
+            container.innerHTML = `
+                <div class="text-center py-6 fade-in-up">
+                    ${renderSputnikSVG('w-24 h-24 mx-auto mb-6')}
+
+                    <h2 class="text-2xl font-bold mb-2 text-main">Mission Report</h2>
+                    <p class="text-sm text-muted mb-6">${CONTENT_DB.quizzes[this.state.currentLesson]?.name || 'Lesson'} Complete</p>
+
+                    <div class="relative inline-block mb-6">
+                        <svg class="progress-ring w-28 h-28" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="45" fill="none" stroke="var(--border)" stroke-width="6"/>
+                            <circle class="progress-ring__circle" cx="50" cy="50" r="45" fill="none" 
+                                stroke="var(--red)" stroke-width="6" stroke-linecap="round"
+                                stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"/>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span class="text-2xl font-bold text-main">${accuracy}%</span>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-center gap-8 mb-6">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold" style="color: var(--red)">${this.state.streak}</div>
+                            <div class="text-[10px] text-faint uppercase">Streak</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold" style="color: var(--amber)">${this.state.xp}</div>
+                            <div class="text-[10px] text-faint uppercase">Total XP</div>
+                        </div>
+                    </div>
+
+                    <button id="share-btn" class="w-full py-3 rounded font-bold btn-press mb-3 transition card" style="border: 1px solid var(--border)">
+                        <i class="fa-solid fa-share-nodes mr-2"></i> Share Result
+                    </button>
+
+                    <button id="next-mission" class="w-full py-3 rounded font-bold btn-press text-white" style="background: var(--red)">
+                        Next Mission <i class="fa-solid fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('next-mission').onclick = () => {
+                if (this.state.currentLesson < CONTENT_DB.quizzes.length - 1) {
+                    this.state.currentLesson++;
+                } else {
+                    this.state.currentLesson = 0;
+                }
+                this.state.quizIndex = 0;
+                this.state.quizScore = 0;
+                this.state.quizWrong = 0;
+                this.state.quizAnswered = false;
+                this.render();
+                this.centerRoadmap();
+            };
+
+            document.getElementById('share-btn').onclick = () => {
+                const text = `🚀 I just completed Mission ${this.state.currentLesson + 1} on Sputnik with ${accuracy}% accuracy!`;
+                navigator.clipboard.writeText(text).then(() => {
+                    const btn = document.getElementById('share-btn');
+                    btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i> Copied!';
+                    btn.style.background = 'rgba(34, 197, 94, 0.1)';
+                    btn.style.color = '#22c55e';
+                    setTimeout(() => {
+                        btn.innerHTML = '<i class="fa-solid fa-share-nodes mr-2"></i> Share Result';
+                        btn.style.background = '';
+                        btn.style.color = '';
+                    }, 2000);
+                });
+            };
+
+            this.renderRoadmap();
+        },
+
+        renderRechargeStation() {
+            const container = document.getElementById('quiz-container');
+            const remaining = 5 - this.state.rechargeCount;
+            
+            if (this.state.rechargeCount >= 5) {
+                this.state.hearts = Math.min(5, this.state.hearts + 1);
+                this.state.rechargeCount = 0;
+                this.state.rechargeQueue = [];
+                this.sync();
+                this.renderQuiz();
+                return;
+            }
+
+            const word = this.state.rechargeQueue[this.state.rechargeCount];
+            
+            container.innerHTML = `
+                <div class="text-center fade-in-up">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style="background: rgba(239,68,68,0.1)">
+                        <i class="fa-solid fa-heart heart-recharging text-2xl" style="color: var(--red)"></i>
+                    </div>
+                    
+                    <h2 class="text-xl font-bold mb-1 text-main">Recharge Station</h2>
+                    <p class="text-sm text-muted mb-2">
+                        Review ${remaining} more word${remaining > 1 ? 's' : ''} to restore a heart
+                    </p>
+                    
+                    <div class="flex justify-center gap-2 mb-6">
+                        ${Array(5).fill(0).map((_, i) => `
+                            <div class="w-2 h-2 rounded-full" style="background: ${i < this.state.rechargeCount ? 'var(--red)' : 'var(--border)'}"></div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="p-6 rounded-lg mb-6" style="background: var(--bg)">
+                        <div class="text-4xl font-bold cyrillic mb-2 text-main">${word.ru}</div>
+                        <div class="text-sm font-mono mb-2" style="color: var(--amber)">${word.ipa}</div>
+                        <div class="text-sm text-muted">${word.en}</div>
+                        <button onclick="App.speak('${word.ru}')" class="mt-3 text-sm text-muted hover:text-[var(--red)] transition">
+                            <i class="fa-solid fa-volume-high mr-1"></i> Listen
+                        </button>
+                    </div>
+                    
+                    <button id="recharge-btn" class="w-full py-3 rounded font-bold btn-press text-white" style="background: var(--red)">
+                        <i class="fa-solid fa-check mr-2"></i> I remember this
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('recharge-btn').onclick = () => {
+                this.state.rechargeCount++;
+                this.renderRechargeStation();
+            };
+        },
+
+        selectLesson(index) {
+            this.state.currentLesson = index;
+            this.state.quizIndex = 0;
+            this.state.quizScore = 0;
+            this.state.quizWrong = 0;
+            this.state.quizAnswered = false;
+            this.render();
+            document.getElementById('practice').scrollIntoView({ behavior: 'smooth' });
+            requestAnimationFrame(() => this.centerRoadmap());
+        },
+
+        speak(text) {
+            if (!('speechSynthesis' in window)) return;
+            
+            const voices = speechSynthesis.getVoices();
+            if (voices.length === 0) {
+                speechSynthesis.onvoiceschanged = () => this.speak(text);
+                return;
+            }
+
+            speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ru-RU';
+            utterance.rate = this.state.audioRate;
+            
+            const russianVoice = voices.find(v => v.lang.includes('ru'));
+            if (russianVoice) utterance.voice = russianVoice;
+            
+            speechSynthesis.speak(utterance);
+        },
+
+        bindEvents() {
+            document.getElementById('theme-toggle').onclick = () => this.toggleTheme();
+
+            document.getElementById('menu-toggle').onclick = () => {
+                document.getElementById('mobile-nav').classList.remove('translate-x-full');
+            };
+            document.getElementById('menu-close').onclick = () => {
+                document.getElementById('mobile-nav').classList.add('translate-x-full');
+            };
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.onclick = () => {
+                    document.getElementById('mobile-nav').classList.add('translate-x-full');
+                };
+            });
+
+            document.addEventListener('keydown', (e) => {
+                const isTyping = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
+                
+                if (!isTyping && ['1', '2', '3', '4'].includes(e.key)) {
+                    e.preventDefault();
+                    const btns = document.querySelectorAll('#mc-options button');
+                    const idx = parseInt(e.key) - 1;
+                    if (btns[idx] && !this.state.quizAnswered) {
+                        btns[idx].click();
+                    }
+                }
+                
+                if (e.code === 'Space' && !isTyping) {
+                    e.preventDefault();
+                    const audioBtn = document.getElementById('audio-btn-mc');
+                    if (audioBtn) audioBtn.click();
+                }
+
+                if (e.key === 'Enter') {
+                    const continueBtn = document.getElementById('continue-btn');
+                    if (continueBtn) { continueBtn.click(); return; }
+                    
+                    const typeSubmit = document.getElementById('type-submit');
+                    if (typeSubmit && !this.state.quizAnswered && isTyping) { typeSubmit.click(); return; }
+
+                    const rechargeBtn = document.getElementById('recharge-btn');
+                    if (rechargeBtn) { rechargeBtn.click(); return; }
+
+                    const nextMission = document.getElementById('next-mission');
+                    if (nextMission) nextMission.click();
+                }
+            });
+
+            if ('speechSynthesis' in window) {
+                speechSynthesis.getVoices();
+                speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+            }
+
+            document.addEventListener('click', () => { this.state.userInteracted = true; }, { once: true });
+        }
+    };
+
+    App.init();
+    </script>
+</body>
+</html>
